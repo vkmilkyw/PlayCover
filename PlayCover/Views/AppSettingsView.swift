@@ -248,6 +248,7 @@ struct GraphicsView: View {
                     Picker("", selection: $settings.settings.resolution) {
                         Text("settings.picker.adaptiveRes.0").tag(0)
                         Text("settings.picker.adaptiveRes.1").tag(1)
+                        Text("720p").tag(6)
                         Text("1080p").tag(2)
                         Text("1440p").tag(3)
                         Text("4K").tag(4)
@@ -294,7 +295,8 @@ struct GraphicsView: View {
                         } onDecrement: {
                             customHeight -= 1
                         }
-                    } else if settings.settings.resolution >= 2 && settings.settings.resolution <= 4 {
+                    } else if (settings.settings.resolution >= 2 && settings.settings.resolution <= 4)
+                                || settings.settings.resolution == 6 {
                         Text("settings.picker.aspectRatio")
                         Spacer()
                         Picker("", selection: $settings.settings.aspectRatio) {
@@ -412,6 +414,10 @@ struct GraphicsView: View {
         case 5:
             width = customWidth
             height = customHeight
+        // Adaptive resolution = 720p
+        case 6:
+            height = 720
+            width = getWidthFromAspectRatio(height)
         // Adaptive resolution = Off
         default:
             height = 1080
