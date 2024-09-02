@@ -42,6 +42,20 @@ class PlayTools {
 
         return playCoverPath
     }
+    
+    private static var appPlayToolsPath: URL {
+        let playToolsDir = PlayTools.playCoverContainer.appendingPathComponent("App PlayTools")
+
+        if !FileManager.default.fileExists(atPath: playToolsDir.path) {
+            do {
+                try FileManager.default.createDirectory(at: playToolsDir, withIntermediateDirectories: true)
+            } catch {
+                Log.shared.error(error)
+            }
+        }
+
+        return playToolsDir
+    }
 
     static func installOnSystem() {
         Task(priority: .background) {
@@ -235,4 +249,50 @@ class PlayTools {
             }
         }
 	}
+
+    static func configurePlayTools(_ zipUrl: URL, forApp bundleId: String) {
+        do {
+            Log.shared.log("Configuring PlayTools for \(bundleId)")
+
+            let appSpecificPlayToolsPath = appPlayToolsPath.appendingPathComponent(bundleId)
+
+            // Delete and recreate directory
+            FileManager.default.delete(at: URL(fileURLWithPath: appSpecificPlayToolsPath.path))
+            try FileManager.default.createDirectory(at: appSpecificPlayToolsPath, withIntermediateDirectories: true)
+
+            // Extract from zip
+            try Shell.run("/usr/bin/unzip", "-oq", zipUrl.path, "-d", appSpecificPlayToolsPath.path)
+
+        } catch {
+            Log.shared.error(error)
+        }
+    }
+
+    static func copyPlayToolsForApp(_ bundleId: String) {
+        do {
+            let appSpecificPlayToolsPath = appPlayToolsPath.appendingPathComponent(bundleId)
+                .appendingPathComponent("PlayTools")
+                .appendingPathExtension("framework")
+            let bundleIdHintFilePath = playToolsFramework.appendingPathComponent("BUNDLEID")
+
+            if FileManager.default.fileExists(atPath: appSpecificPlayToolsPath.path) {
+                Log.shared.log("Copying PlayTools for \(bundleId)")
+                // Delete existing PlayTools
+                FileManager.default.delete(at: URL(fileURLWithPath: playToolsFramework.path))
+                // Copy the app-specific version of PlayTools
+                try FileManager.default.copyItem(at: appSpecificPlayToolsPath, to: playToolsFramework)
+                // Output bundle id to a file
+                try bundleId.write(toFile: bundleIdHintFilePath.path, atomically: true, encoding: .utf8)
+            } else {
+                // If PlayTools is not found or is an app-specific version, reinstall it
+                if FileManager.default.fileExists(atPath: bundleIdHintFilePath.path) {
+                    Log.shared.log("Copying default PlayTools")
+                    FileManager.default.delete(at: URL(fileURLWithPath: playToolsFramework.path))
+                    try FileManager.default.copyItem(at: bundledPlayToolsFramework, to: playToolsFramework)
+                }
+            }
+        } catch {
+            Log.shared.error(error)
+        }
+    }
 }

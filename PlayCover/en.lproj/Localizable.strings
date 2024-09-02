@@ -184,6 +184,7 @@
 
 "settings.applicationCategoryType" = "Application Type";
 "settings.removePlayTools" = "Remove PlayTools";
+"settings.configureAppSpecificPlayTools" = "Configure App-Specific PlayTools";
 
 "settings.info.displayName" = "Display name:";
 "settings.info.bundleName" = "Bundle name:";

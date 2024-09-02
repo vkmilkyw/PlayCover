@@ -681,6 +681,15 @@ struct MiscView: View {
                                 }
                             }
                     }
+                    Button {
+                        NSOpenPanel.selectZip { result in
+                            if case .success(let url) = result {
+                                PlayTools.configurePlayTools(url, forApp: app.info.bundleIdentifier)
+                            }
+                        }
+                    } label: {
+                        Text("settings.configureAppSpecificPlayTools")
+                    }.disabled(!(hasPlayTools ?? true))
                     Spacer()
                 }
                 Spacer()

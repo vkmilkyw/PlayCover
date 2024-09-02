@@ -61,6 +61,7 @@ class PlayApp: BaseApp {
             // If the app does not have PlayTools, do not install PlugIns
             if hasPlayTools() {
                 try PlayTools.installPluginInIPA(url)
+                PlayTools.copyPlayToolsForApp(self.info.bundleIdentifier)
             }
 
             if try !PlayTools.isInstalled() {
