@@ -155,6 +155,11 @@ struct KeymappingView: View {
     @AppStorage("settings.settings.keymapping") private var keymapping = false
     @AppStorage("settings.settings.noKMOnInput") private var noKMOnInput = false
     @AppStorage("settings.settings.enableScrollWheel") private var enableScrollWheel = false
+    @State var cursorImage: NSImage?
+    @State var cursorImageLoading = true
+    @State var cursorHotSpotX = 0
+    @State var cursorHotSpotY = 0
+    @State var showClearCursorAlert = false
     var body: some View {
         ScrollView {
             VStack {
@@ -179,10 +184,145 @@ struct KeymappingView: View {
                         .frame(width: 250)
                         .disabled(!settings.settings.keymapping)
                 }
+                HStack {
+                    VStack {
+                        HStack {
+                            Text("settings.text.cursorSize")
+                            Spacer()
+                            Text("W:")
+                            TextField(
+                                "Width",
+                                value: $settings.settings.cursorWidth,
+                                formatter: GraphicsView.number,
+                                onCommit: {
+                                    Task { @MainActor in
+                                        NSApp.keyWindow?.makeFirstResponder(nil)
+                                    }
+                                })
+                            Text("H:")
+                            TextField(
+                                "Height",
+                                value: $settings.settings.cursorHeight,
+                                formatter: GraphicsView.number,
+                                onCommit: {
+                                    Task { @MainActor in
+                                        NSApp.keyWindow?.makeFirstResponder(nil)
+                                    }
+                                })
+                        }
+                        HStack {
+                            Text("settings.text.cursorHotSpot")
+                            Spacer()
+                            Text("X:")
+                            Stepper(value: $cursorHotSpotX) {
+                                TextField(
+                                    "Offset X",
+                                    value: $cursorHotSpotX,
+                                    formatter: GraphicsView.number,
+                                    onCommit: {
+                                        Task { @MainActor in
+                                            NSApp.keyWindow?.makeFirstResponder(nil)
+                                        }
+                                    })
+                            }
+                            Text("Y:")
+                            Stepper(value: $cursorHotSpotY) {
+                                TextField(
+                                    "Offset Y",
+                                    value: $cursorHotSpotY,
+                                    formatter: GraphicsView.number,
+                                    onCommit: {
+                                        Task { @MainActor in
+                                            NSApp.keyWindow?.makeFirstResponder(nil)
+                                        }
+                                    })
+                            }
+                        }
+                    }.frame(width: 300).disabled(cursorImage == nil)
+                    Spacer()
+                    if cursorImageLoading {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .frame(width: 60, height: 60)
+                    } else if let image = cursorImage {
+                        Image(nsImage: image)
+                            .resizable()
+                            .frame(width: 60, height: 60)
+                            .scaledToFit()
+                            .background(RoundedRectangle(cornerRadius: 4)
+                                .stroke(style: StrokeStyle(lineWidth: 2, dash: [10, 5]))
+                                .foregroundColor(Color(nsColor: NSColor.lightGray))
+                            )
+                            .overlay(
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 8, height: 8)
+                                    .position(
+                                        x: Double(cursorHotSpotX) / Double(settings.settings.cursorWidth) * 60,
+                                        y: Double(cursorHotSpotY) / Double(settings.settings.cursorHeight) * 60
+                                    ),
+                                alignment: .topLeading
+                            )
+                        Image(systemName: "trash.circle.fill")
+                            .resizable()
+                            .frame(width: 24, height: 24)
+                            .foregroundColor(Color.gray)
+                            .onTapGesture {
+                                showClearCursorAlert = true
+                            }
+                    } else {
+                        Image(systemName: "plus.square")
+                            .resizable()
+                            .frame(width: 60, height: 60)
+                            .scaledToFill()
+                            .foregroundColor(Color(nsColor: .lightGray))
+                            .onTapGesture {
+                                selectCursorImage()
+                            }
+                    }
+                }
                 Spacer()
             }
             .padding()
+            .onChange(of: cursorHotSpotX) { _ in
+                settings.settings.cursorHotSpotX = cursorHotSpotX
+            }
+            .onChange(of: cursorHotSpotY) { _ in
+                settings.settings.cursorHotSpotY = cursorHotSpotY
+            }
+            .alert("alert.cursor.clear", isPresented: $showClearCursorAlert) {
+                Button("button.Proceed", role: .destructive) {
+                    clearCursorImage()
+                }
+                Button("button.Cancel", role: .cancel) { }
+            }
+            .task(priority: .userInitiated) {
+                cursorImage = Cursor.shared.loadCursorImage(settings.info.bundleIdentifier)
+                cursorImageLoading = false
+                cursorHotSpotX = settings.settings.cursorHotSpotX
+                cursorHotSpotY = settings.settings.cursorHotSpotY
+            }
         }
+    }
+
+    func selectCursorImage() {
+        NSOpenPanel.selectImage { result in
+            if case .success(let url) = result {
+                if let image = NSImage(contentsOfFile: url.path) {
+                    Cursor.shared.saveCursorImage(url, for: settings.info.bundleIdentifier)
+                    cursorImage = image
+                    settings.settings.cursorWidth = Int(image.representations[0].pixelsWide)
+                    settings.settings.cursorHeight = Int(image.representations[0].pixelsHigh)
+                    settings.settings.cursorHotSpotX = 0
+                    settings.settings.cursorHotSpotY = 0
+                }
+            }
+        }
+    }
+
+    func clearCursorImage() {
+        Cursor.shared.clearCursorImage(settings.info.bundleIdentifier)
+        cursorImage = nil
     }
 }
 

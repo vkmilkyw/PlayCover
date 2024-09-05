@@ -41,6 +41,10 @@ struct AppSettingsData: Codable {
     var rootWorkDir = true
     var noKMOnInput = true
     var enableScrollWheel = true
+    var cursorWidth = 32
+    var cursorHeight = 32
+    var cursorHotSpotX = 0
+    var cursorHotSpotY = 0
 
     init() {}
 
@@ -71,6 +75,10 @@ struct AppSettingsData: Codable {
         rootWorkDir = try container.decodeIfPresent(Bool.self, forKey: .rootWorkDir) ?? true
         noKMOnInput = try container.decodeIfPresent(Bool.self, forKey: .noKMOnInput) ?? true
         enableScrollWheel = try container.decodeIfPresent(Bool.self, forKey: .enableScrollWheel) ?? true
+        cursorWidth = try container.decodeIfPresent(Int.self, forKey: .cursorWidth) ?? 32
+        cursorHeight = try container.decodeIfPresent(Int.self, forKey: .cursorHeight) ?? 32
+        cursorHotSpotX = try container.decodeIfPresent(Int.self, forKey: .cursorHotSpotX) ?? 0
+        cursorHotSpotY = try container.decodeIfPresent(Int.self, forKey: .cursorHotSpotY) ?? 0
     }
 }
 
